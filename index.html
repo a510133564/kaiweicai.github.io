@@ -1,0 +1,1128 @@
+<html lang="zh-CN"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI驱动RPG小游戏</title>
+    <!-- Tailwind CSS v3 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- 统一的 Tailwind 配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#2D7D46',
+                        secondary: '#9FE870',
+                        accent: '#FFD700',
+                        dark: '#1A2B22',
+                        light: '#F0F8F1'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        fantasy: ['Cinzel', 'Georgia', 'serif']
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-in-out',
+                        'typewriter': 'typewriter 2s steps(40, end)',
+                        'blink-caret': 'blinkCaret 0.75s step-end infinite'
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' }
+                        },
+                        typewriter: {
+                            'from': { width: '0' },
+                            'to': { width: '100%' }
+                        },
+                        blinkCaret: {
+                            'from, to': { borderColor: 'transparent' },
+                            '50%': { borderColor: 'currentColor' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-shadow {
+                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            }
+            .text-shadow-lg {
+                text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
+            }
+            .bg-blur {
+                backdrop-filter: blur(8px);
+            }
+            .typewriter {
+                overflow: hidden;
+                border-right: 0.15em solid;
+                white-space: nowrap;
+                margin: 0 auto;
+                letter-spacing: 0.15em;
+                animation: typewriter 3.5s steps(40, end), blinkCaret 0.75s step-end infinite;
+            }
+        }
+    </style>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;600;700&display=swap');
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1A2B22;
+            color: #F0F8F1;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        h1, h2, h3, h4, h5 {
+            font-family: 'Cinzel', serif;
+        }
+        
+        .scene-transition {
+            transition: opacity 0.5s ease-in-out;
+        }
+        
+        .option-button {
+            transition: all 0.3s ease;
+        }
+        
+        .option-button:active {
+            transform: translateX(5px);
+            box-shadow: 0 2px 6px rgba(159, 232, 112, 0.3);
+        }
+        
+        .typing-animation::after {
+            content: '|';
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+        
+        .loading-spinner {
+            border: 3px solid rgba(159, 232, 112, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid #9FE870;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(26, 43, 34, 0.5);
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: rgba(45, 125, 70, 0.7);
+            border-radius: 3px;
+        }
+        
+        /* 移动设备优化 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0.5rem;
+                height: 100vh;
+                display: flex;
+                flex-direction: column;
+            }
+            
+            header {
+                margin-bottom: 0.5rem;
+            }
+            
+            h1 {
+                font-size: 1.75rem !important;
+            }
+            
+            .flex-grow {
+                flex-grow: 1;
+                min-height: 0;
+            }
+            
+            .h-\[500px\] {
+                height: auto;
+                max-height: 45vh;
+            }
+            
+            .w-16 {
+                width: 12vw;
+            }
+            
+            .h-16 {
+                height: 12vw;
+            }
+            
+            .p-6 {
+                padding: 0.75rem;
+            }
+            
+            .p-4 {
+                padding: 0.5rem;
+            }
+            
+            .p-3 {
+                padding: 0.5rem;
+            }
+            
+            .mb-8 {
+                margin-bottom: 0.5rem;
+            }
+            
+            .mb-6 {
+                margin-bottom: 0.5rem;
+            }
+            
+            .mb-4 {
+                margin-bottom: 0.5rem;
+            }
+            
+            .mb-2 {
+                margin-bottom: 0.25rem;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- 游戏容器 -->
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- 游戏标题 -->
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-accent mb-2 text-shadow-lg" style="font-size: 20px;">牛马穿异世界卡BUG当勇者</h1>
+            <p class="text-secondary italic">世界冒险</p>
+        </header>
+        
+        <!-- 游戏主界面 -->
+        <div class="flex flex-col md:flex-row gap-6">
+            <!-- 左侧场景区域 -->
+            <div class="w-full md:w-1/2">
+                <div class="bg-dark bg-opacity-70 rounded-lg p-6 h-[500px] flex flex-col">
+                    <h2 class="text-2xl font-bold text-secondary mb-4">当前地图</h2>
+                    <div id="scene-container" class="flex-grow overflow-y-auto">
+                        <div id="scene-image" class="w-full h-48 md:h-64 rounded-md overflow-hidden mb-4">
+                            <img src="https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/9623efa26b5843728c28c356614316b5~tplv-a9rns2rl98-image.image?rcl=20251205085907E9093CE8026E771E2673&amp;rk3s=8e244e95&amp;rrcfp=f06b921b&amp;x-expires=1767488361&amp;x-signature=yoAr55%2F4Ng46sOKt4H34cfIPzMA%3D" alt="宁静村庄" class="w-full h-full object-cover">
+                        </div>
+                        <div id="scene-description" class="text-light">你揉了揉眼睛，发现自己站在一个充满像素感的村庄中央。木质房屋、茅草屋顶、远处的城堡...这场景怎么这么熟悉？等等，这不是你昨天熬夜玩的《勇者传说Online》游戏吗？作为一名996社畜，你只是想睡前玩两局放松一下，怎么就真的穿越进来了？</div>
+                    </div>
+                </div>
+                
+                <!-- 简洁装备栏 -->
+                <div class="bg-dark bg-opacity-70 rounded-lg p-2 mt-3">
+                    <div class="flex justify-between items-center mb-2">
+                        <h2 class="text-lg font-bold text-secondary">装备</h2>
+                        <span id="equipment-level" class="text-xs text-accent bg-primary bg-opacity-30 px-2 py-1 rounded-full">Lv.1</span>
+                    </div>
+                    <div id="equipment-container" class="grid grid-cols-3 gap-2 text-center">
+                        <div class="equipment-slot text-xs" data-slot="weapon">
+                            <span class="block text-secondary">武器:</span>
+                            <span id="weapon-name" class="block text-light truncate">初始键盘</span>
+                        </div>
+                        <div class="equipment-slot text-xs" data-slot="armor">
+                            <span class="block text-secondary">防具:</span>
+                            <span id="armor-name" class="block text-light truncate">程序员格子衫</span>
+                        </div>
+                        <div class="equipment-slot text-xs" data-slot="accessory">
+                            <span class="block text-secondary">饰品:</span>
+                            <span id="accessory-name" class="block text-light truncate">防脱发洗发水</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 右侧对话区域 -->
+            <div class="w-full md:w-1/2">
+                <div class="bg-dark bg-opacity-70 rounded-lg p-6 h-[500px] flex flex-col">
+                    <h2 class="text-2xl font-bold text-secondary mb-4">对话</h2>
+                    
+                    <!-- NPC信息 -->
+                    <div id="npc-container" class="mb-4 flex items-center">
+                        <div class="w-16 h-16 rounded-full overflow-hidden mr-4 flex-shrink-0">
+                            <img id="npc-image" src="https://p9-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/0ef4edbce3f04604aecb47a4aba3de25~tplv-a9rns2rl98-image.image?rcl=20251205085907E9093CE8026E771E2673&amp;rk3s=8e244e95&amp;rrcfp=f06b921b&amp;x-expires=1767488371&amp;x-signature=NSSV8iTzXfD0uVjo9lvSVFLmiDA%3D" alt="村长" class="w-full h-full object-cover">
+                        </div>
+                        <div>
+                            <h3 id="npc-name" class="text-xl font-bold text-accent">老村长汤姆</h3>
+                            <p id="npc-title" class="text-sm text-secondary">布伦村村长</p>
+                        </div>
+                    </div>
+                    
+                    <!-- 对话内容 -->
+                    <div id="dialogue-container" class="flex-grow overflow-y-auto mb-4 p-4 bg-dark bg-opacity-50 rounded-md">
+                        <div class="mb-4">
+                            <p class="text-accent font-bold">老村长汤姆:</p>
+                            <p class="text-light">勇者大人！您终于来了！我们村子正面临灭顶之灾，黑暗魔王"996兽"已经苏醒，他要让整个王国的人都过上996的生活！只有传说中的"摸鱼圣剑"才能击败他！</p>
+                        </div>
+                    </div>
+                    
+                    <!-- 选项区域 -->
+                    <div id="options-container" class="mt-auto">
+                        <div class="flex justify-center mb-4" id="loading-indicator" style="display: none;">
+                            <div class="loading-spinner"></div>
+                            <span class="ml-2 text-secondary">AI正在思考...</span>
+                        </div>
+                        
+                        <div id="options-list">
+                            <button class="option-button w-full text-left p-3 mb-2 rounded-md bg-primary bg-opacity-30 hover:bg-opacity-50 border-l-4 border-secondary">
+                                等等，这一定是在做梦！我昨天还在公司加班到凌晨三点，现在应该在地铁上打瞌睡才对！
+                            </button>
+                            <button class="option-button w-full text-left p-3 mb-2 rounded-md bg-primary bg-opacity-30 hover:bg-opacity-50 border-l-4 border-secondary">
+                                摸鱼圣剑？听起来很适合我！不过击败996兽后，能给我双休和法定节假日吗？
+                            </button>
+                            <button class="option-button w-full text-left p-3 mb-2 rounded-md bg-primary bg-opacity-30 hover:bg-opacity-50 border-l-4 border-secondary">
+                                系统提示：检测到玩家穿越，是否接受主线任务"社畜的逆袭"？奖励：摆脱996，获得财务自由！
+                            </button>
+                        </div>
+                        <div class="mt-4">
+                            <div class="flex">
+                                <input type="text" id="custom-option" placeholder="输入自定义选项..." class="flex-1 p-2 rounded-l-md bg-primary bg-opacity-20 text-light border border-secondary">
+                                <button id="custom-option-btn" class="p-2 bg-secondary hover:bg-opacity-80 rounded-r-md">
+                                    <i class="fa fa-paper-plane"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+
+            </div>
+        </div>
+        
+        <!-- 游戏控制区域 -->
+        <div class="mt-8 text-center">
+            <div class="bg-dark bg-opacity-70 rounded-lg p-4">
+                <h3 class="text-xl font-bold text-secondary mb-4">游戏控制</h3>
+                <div class="flex flex-wrap justify-center gap-4">
+                    <button id="restart-button" class="px-6 py-2 bg-accent text-dark font-bold rounded-md hover:bg-opacity-80 transition">
+                        <i class="fa fa-refresh mr-2"></i>重新开始
+                    </button>
+                    <button id="save-button" class="px-6 py-2 bg-secondary text-dark font-bold rounded-md hover:bg-opacity-80 transition">
+                        <i class="fa fa-save mr-2"></i>保存游戏
+                    </button>
+                    <button id="api-key-button" class="px-6 py-2 bg-primary text-light font-bold rounded-md hover:bg-opacity-80 transition">
+                        <i class="fa fa-key mr-2"></i>设置API Key
+                    </button>
+                </div>
+                
+                <!-- API Key 设置对话框 -->
+                <div id="api-key-dialog" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+                    <div class="bg-dark p-6 rounded-lg max-w-md w-full">
+                        <h4 class="text-xl font-bold text-accent mb-4">设置千问API Key</h4>
+                        <p class="text-light mb-4">请输入您的阿里云百炼API Key以启用AI功能：</p>
+                        <input type="text" id="api-key-input" class="w-full p-2 mb-4 bg-dark border border-secondary rounded-md text-light" placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxx">
+                        <div class="flex justify-end gap-2">
+                            <button id="cancel-api-key" class="px-4 py-2 bg-dark border border-secondary text-light rounded-md hover:bg-primary transition">取消</button>
+                            <button id="save-api-key" class="px-4 py-2 bg-accent text-dark font-bold rounded-md hover:bg-opacity-80 transition">保存</button>
+                        </div>
+                    </div>
+                </div>
+                
+
+            </div>
+        </div>
+        
+        <!-- 游戏结束对话框 -->
+        <div id="game-over-dialog" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-dark p-6 rounded-lg max-w-md w-full">
+                <h4 id="ending-title" class="text-2xl font-bold text-accent mb-4">游戏结束</h4>
+                <p id="ending-description" class="text-light mb-6">你成功完成了这段旅程！</p>
+                <div class="flex justify-center">
+                    <button id="play-again-button" class="px-6 py-2 bg-accent text-dark font-bold rounded-md hover:bg-opacity-80 transition">
+                        再次冒险
+                    </button>
+                </div>
+                
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 游戏状态
+        const gameState = {
+            apiKey: localStorage.getItem('qwen-api-key') || '',
+            currentScene: 'game_village',
+            gameHistory: [],
+            npcInfo: {
+                name: '老村长汤姆',
+                title: '新手村村长/前资深社畜',
+                image: 'https://p9-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/0ef4edbce3f04604aecb47a4aba3de25~tplv-a9rns2rl98-image.image?rcl=20251205085907E9093CE8026E771E2673&rk3s=8e244e95&rrcfp=f06b921b&x-expires=1767488371&x-signature=NSSV8iTzXfD0uVjo9lvSVFLmiDA%3D'
+            },
+            sceneInfo: {
+                image: 'https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/9623efa26b5843728c28c356614316b5~tplv-a9rns2rl98-image.image?rcl=20251205085907E9093CE8026E771E2673&rk3s=8e244e95&rrcfp=f06b921b&x-expires=1767488361&x-signature=yoAr55%2F4Ng46sOKt4H34cfIPzMA%3D',
+                description: '你揉了揉眼睛，发现自己站在一个充满像素感的村庄中央。木质房屋、茅草屋顶、远处的城堡...这场景怎么这么熟悉？等等，这不是你昨天熬夜玩的《勇者传说Online》游戏吗？作为一名996社畜，你只是想睡前玩两局放松一下，怎么就真的穿越进来了？'
+            },
+            dialogueHistory: [
+                {
+                    speaker: '老村长汤姆',
+                    text: '勇者大人！您终于来了！我们村子正面临灭顶之灾，黑暗魔王"996兽"已经苏醒，他要让整个王国的人都过上996的生活！只有传说中的"摸鱼圣剑"才能击败他！'
+                }
+            ],
+            equipment: {
+                weapon: {
+                    name: '初始键盘',
+                    icon: 'gavel',
+                    description: '你的第一个武器，虽然只是普通键盘，但敲代码很顺手',
+                    level: 1
+                },
+                armor: {
+                    name: '程序员格子衫',
+                    icon: 'user',
+                    description: '经典程序员装扮，提供基础防御，还能隐藏你的社畜身份',
+                    level: 1
+                },
+                accessory: {
+                    name: '防脱发洗发水',
+                    icon: 'flask',
+                    description: '程序员必备道具，每天使用可以减缓脱发速度',
+                    level: 1
+                }
+            },
+            gameStarted: true,
+            gameEnded: false,
+            turnCount: 0,
+            maxTurns: 15 // 大约10分钟的游戏时长
+        };
+
+        // 预设的场景和对话（当API不可用时使用）
+        const fallbackContent = {
+            scenes: {
+                game_village: {
+                    description: '你揉了揉眼睛，发现自己站在一个充满像素感的村庄中央。木质房屋、茅草屋顶、远处的城堡...这场景怎么这么熟悉？等等，这不是你昨天熬夜玩的《勇者传说Online》游戏吗？作为一名996社畜，你只是想睡前玩两局放松一下，怎么就真的穿越进来了？',
+                    image: 'https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/9623efa26b5843728c28c356614316b5~tplv-a9rns2rl98-image.image?rcl=20251205085907E9093CE8026E771E2673&rk3s=8e244e95&rrcfp=f06b921b&x-expires=1767488361&x-signature=yoAr55%2F4Ng46sOKt4H34cfIPzMA%3D'
+                },
+                office_forest: {
+                    description: '你进入了"加班森林"，这里的树木都是枯萎的，形状酷似办公桌椅。空气中弥漫着咖啡和便利面的味道，远处传来键盘敲击声和老板的咆哮声。地上散落着各种工作文档和程序员的头发。',
+                    image: 'https://p9-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/9e04fc862ab74c77a6042eb08cd8b484~tplv-a9rns2rl98-image.image?rcl=2025120509052621C41E6A4DE57446F8A4&rk3s=8e244e95&rrcfp=f06b921b&x-expires=1767488916&x-signature=0yvf2Yf6kKT48%2FcY1Cj1%2Fw8NBZQ%3D'
+                },
+                meeting_dungeon: {
+                    description: '你来到了"会议地下城"，这里的墙壁上贴满了PPT和KPI指标。每个房间都传来不同的会议声音："这个需求很简单，就改个按钮颜色"、"996是你们的福报"、"这个项目要赶在明天上线"。前方有三条路，分别写着"需求评审"、"代码审查"和"绩效面谈"。',
+                    image: 'https://p9-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/d71159bfd5a14003805e98bd1a6614c2~tplv-a9rns2rl98-image.image?rcl=2025120509052621C41E6A4DE57446F8A4&rk3s=8e244e95&rrcfp=f06b921b&x-expires=1767488916&x-signature=l9DglCY0r3LsoY02eG2VatkLaVE%3D'
+                },
+                boss_room: {
+                    description: '你终于到达了最终Boss的房间——"CEO办公室"。房间中央有一个巨大的宝座，上面坐着一个长相酷似你现实中老板的怪物，它的头上悬浮着"996兽"的血条。在房间的角落里，你看到了一把闪着金光的剑，剑柄上刻着"摸鱼"两个字。',
+                    image: 'https://p9-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/e60386e56a3145eab9d92b3d07f5e29d~tplv-a9rns2rl98-image.image?rcl=2025120509052621C41E6A4DE57446F8A4&rk3s=8e244e95&rrcfp=f06b921b&x-expires=1767488917&x-signature=JOd%2BOoi3AFi2nyleF%2BJS5zZhVeI%3D'
+                }
+            },
+            dialogues: {
+                dreamer_path: [
+                    {
+                        speaker: '老村长汤姆',
+                        text: '做梦？年轻人，我理解你的困惑。我也曾是一名社畜，每天加班到凌晨，结果穿越到了这个游戏世界。起初我也以为是梦，直到我尝试了100种方法都没能醒过来。'
+                    },
+                    {
+                        speaker: '老村长汤姆',
+                        text: '看，你手上有个游戏界面！这是你的属性面板：等级1，职业"社畜"，技能"摸鱼大师"和"拖延神功"。你真的穿越到游戏里了！'
+                    },
+                    {
+                        speaker: '系统提示',
+                        text: '检测到玩家拒绝接受现实，触发隐藏任务"庄周梦蝶"。任务目标：在游戏世界中找到返回现实的方法。奖励：未知。'
+                    },
+                    {
+                        speaker: '996兽',
+                        text: '哈哈哈哈！你以为这是梦？不，这是对你这种天天熬夜玩游戏的社畜的惩罚！你将永远被困在这个需要996的游戏世界里！'
+                    }
+                ],
+                negotiator_path: [
+                    {
+                        speaker: '老村长汤姆',
+                        text: '双休？法定节假日？年轻人，你太天真了！在996兽统治的世界里，这些都是传说中的奢侈品！不过如果你能击败它，也许可以建立一个新的制度。'
+                    },
+                    {
+                        speaker: '老村长汤姆',
+                        text: '作为前资深社畜，我可以给你一些建议：摸鱼圣剑藏在"CEO办公室"的角落里，但要到达那里需要通过"会议地下城"，里面充满了各种无意义的会议和PPT陷阱。'
+                    },
+                    {
+                        speaker: '产品经理NPC',
+                        text: '嘿，勇者！我有个需求要加给你：在击败996兽之前，先帮我做个需求文档。很简单的，就改个按钮颜色...'
+                    },
+                    {
+                        speaker: '996兽',
+                        text: '想要双休？可以！只要你能在三天内完成我布置的100个需求，我就考虑给你一天休息时间！'
+                    }
+                ],
+                player_path: [
+                    {
+                        speaker: '系统提示',
+                        text: '玩家接受主线任务"社畜的逆袭"！任务目标：击败996兽，解放游戏世界。奖励：摆脱996，获得财务自由！'
+                    },
+                    {
+                        speaker: '老村长汤姆',
+                        text: '很好！你已经掌握了游戏的基本规则。作为新手奖励，我给你一些装备："防脱发洗发水"（头盔）、"程序员格子衫"（护甲）和"键盘侠之剑"（武器）。'
+                    },
+                    {
+                        speaker: '队友招募',
+                        text: '你遇到了两位可以组队的NPC：一位是前产品经理转职的治疗师（技能：画饼充饥），另一位是程序员转职的战士（技能：代码重构）。'
+                    },
+                    {
+                        speaker: '996兽',
+                        text: '你以为玩游戏就能逃避996？在我的领域里，连游戏都要996！不过...你比其他社畜有趣多了，让我看看你能走到哪一步。'
+                    }
+                ]
+            },
+            options: {
+                dreamer_path: [
+                    ['我要掐自己一下，这肯定是在做梦！', '让我试试睡一觉，说不定能醒过来...', '等等，我昨天的工作还没做完，明天要交PPT！'],
+                    ['这属性面板也太真实了吧...摸鱼大师是什么鬼技能？', '有没有"一键回到现实"的按钮？', '我要投诉这个游戏的客服！'],
+                    ['隐藏任务？听起来很有趣，我接受！', '我才不要什么隐藏任务，我要主线任务！', '系统，你能告诉我怎么退出游戏吗？'],
+                    ['不！我不要永远被困在这里！我要反抗！', '等等，也许这是个机会，可以重新开始我的人生...', '996兽，我们来谈谈条件如何？']
+                ],
+                negotiator_path: [
+                    ['那击败996兽后，能给我月薪五万吗？', '有没有五险一金？年终奖怎么算？', '我要求弹性工作制！'],
+                    ['会议地下城？听起来比加班还可怕...', '有没有什么逃课...哦不，逃会的技巧？', '我可以请病假不去开会吗？'],
+                    ['需求文档？没问题！但我要先看一下需求说明书...', '改按钮颜色？可以，加钱！', '抱歉，我现在有更重要的任务要做。'],
+                    ['三天100个需求？你当我是机器吗？', '一天休息时间？不够！我要双休！', '我们来做个交易：我帮你优化工作流程，你给大家双休。']
+                ],
+                player_path: [
+                    ['查看背包，装备新手套装！', '查看技能详情，了解"摸鱼大师"的效果。', '寻找其他玩家，看看有没有一起组队的。'],
+                    ['防脱发洗发水？这游戏也太懂程序员了吧！', '程序员格子衫加防御？那我平时穿的岂不是神装？', '键盘侠之剑？这名字也太搞笑了！'],
+                    ['我选择和治疗师组队，画饼充饥听起来很有用！', '我选择和战士组队，代码重构应该很厉害！', '我选择 solo，社畜就是要孤独！'],
+                    ['在游戏里也要996？这也太真实了吧！', '有趣？那我们来决一死战吧！', '等等，你说"其他社畜"是什么意思？还有其他人也穿越了？']
+                ]
+            },
+            endings: {
+                // 好结局
+                rich: {
+                    title: '财务自由',
+                    description: '你成功击败了996兽，获得了传说中的摸鱼圣剑。这把剑不仅能让你摸鱼不被发现，还能帮你自动完成工作。你利用这个能力开发了一系列自动化工具，赚了大钱，实现了财务自由。现在你每天只工作4小时，剩下的时间都在享受生活。'
+                },
+                harem: {
+                    title: '后宫之王',
+                    description: '在冒险过程中，你展现出了非凡的魅力和幽默感。游戏中的女NPC们都被你深深吸引，包括村长的女儿、女骑士、法师学徒，甚至连996兽的妹妹都对你一见钟情。你最终建立了一个庞大的后宫，过上了左拥右抱的幸福生活。'
+                },
+                king: {
+                    title: '游戏之王',
+                    description: '击败996兽后，你被推举为新的国王。你废除了996制度，推行了一系列惠民政策，让所有居民都能享受双休和法定节假日。在你的治理下，王国变得繁荣昌盛，你也成为了历史上最伟大的国王之一。'
+                },
+                warrior_king: {
+                    title: '武力之王',
+                    description: '在冒险过程中，你不断提升自己的实力。最终，你不仅击败了996兽，还挑战了游戏中的所有强者，成为了当之无愧的武力之王。你的名字被所有玩家传颂，成为了游戏中的传说。'
+                },
+                normal: {
+                    title: '平凡的幸福',
+                    description: '你成功完成了任务，但选择了回到平凡的生活。你找到了一份朝九晚五的工作，有双休和法定节假日，虽然收入不高，但生活稳定而幸福。你偶尔会想起在游戏世界的冒险，但更珍惜现在的平静生活。'
+                },
+                developer: {
+                    title: '游戏开发者',
+                    description: '你选择留在游戏世界，成为了一名游戏开发者。你利用自己对游戏的理解，开发了一款没有996、充满乐趣的新游戏，深受玩家喜爱。你不仅实现了自己的梦想，还为其他玩家创造了快乐。'
+                },
+                
+                // 坏结局
+                death_battle: {
+                    title: '战死沙场',
+                    description: '在与996兽的战斗中，你因为实力不足而被击败。你的身体被996兽的魔爪撕裂，灵魂永远被困在了游戏世界中，成为了一个无依无靠的孤魂野鬼。'
+                },
+                death_starve: {
+                    title: '穷困饿死',
+                    description: '你在游戏世界中迷失了方向，找不到任务和工作。没有收入的你很快就花光了所有积蓄，最终因为饥饿和贫困而死。你的尸体被野狗啃食，无人问津。'
+                },
+                death_depression: {
+                    title: '抑郁而终',
+                    description: '长期的996工作让你身心俱疲，加上穿越到陌生世界的压力，你陷入了深深的抑郁。最终，你无法承受这种痛苦，选择了结束自己的生命。'
+                },
+                become_demon: {
+                    title: '堕落成魔',
+                    description: '在与996兽的战斗中，你被它的魔气感染。你逐渐变得冷酷无情，最终成为了新的魔王。你推行了比996更残酷的007制度，让整个王国陷入了水深火热之中。'
+                },
+                forever_trapped: {
+                    title: '永远被困',
+                    description: '你始终无法找到返回现实的方法，也无法适应游戏世界的生活。你在两个世界之间徘徊，最终精神崩溃，成为了一个只会喃喃自语的疯子。'
+                }
+            }
+        };
+
+        // 当前故事路径（根据玩家的第一个选择确定）
+        let currentStoryPath = '';
+
+        // DOM元素
+        const sceneDescriptionEl = document.getElementById('scene-description');
+        const sceneImageEl = document.getElementById('scene-image');
+        const npcNameEl = document.getElementById('npc-name');
+        const npcTitleEl = document.getElementById('npc-title');
+        const npcImageEl = document.getElementById('npc-image');
+        const dialogueContainerEl = document.getElementById('dialogue-container');
+        const optionsContainerEl = document.getElementById('options-container');
+        const optionsListEl = document.getElementById('options-list');
+        const loadingIndicatorEl = document.getElementById('loading-indicator');
+        const restartButtonEl = document.getElementById('restart-button');
+        const saveButtonEl = document.getElementById('save-button');
+        const apiKeyButtonEl = document.getElementById('api-key-button');
+        const apiKeyDialogEl = document.getElementById('api-key-dialog');
+        const apiKeyInputEl = document.getElementById('api-key-input');
+        const cancelApiKeyEl = document.getElementById('cancel-api-key');
+        const saveApiKeyEl = document.getElementById('save-api-key');
+        const gameOverDialogEl = document.getElementById('game-over-dialog');
+        const endingTitleEl = document.getElementById('ending-title');
+        const endingDescriptionEl = document.getElementById('ending-description');
+        const playAgainButtonEl = document.getElementById('play-again-button');
+
+        // 初始化游戏
+        function initGame() {
+            // 检查是否有API Key
+            if (!gameState.apiKey) {
+                showApiKeyDialog();
+            }
+            
+            // 设置初始游戏状态
+            updateUI();
+            setupEventListeners();
+        }
+
+        // 更新UI
+        function updateUI() {
+            // 更新场景信息
+            sceneDescriptionEl.textContent = gameState.sceneInfo.description;
+            sceneImageEl.src = gameState.sceneInfo.image;
+            
+            // 更新NPC信息
+            npcNameEl.textContent = gameState.npcInfo.name;
+            npcTitleEl.textContent = gameState.npcInfo.title;
+            npcImageEl.src = gameState.npcInfo.image;
+            
+            // 更新对话历史
+            updateDialogueHistory();
+            
+            // 更新选项
+            updateOptions();
+            
+            // 更新装备栏
+            updateEquipment();
+        }
+        
+        // 更新装备栏
+        function updateEquipment() {
+            const equipmentContainer = document.getElementById('equipment-container');
+            const equipmentImageUrl = 'https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/009b2e1c7ac74698b564d15be1a472e9~tplv-a9rns2rl98-image.image?rcl=20251205131007682D28AD349808504844&rk3s=8e244e95&rrcfp=f06b921b&x-expires=1767503512&x-signature=la%2BdSErdqDowt%2BkSENuDMwyTezk%3D';
+            
+            // 遍历装备槽位
+            Object.keys(gameState.equipment).forEach(slot => {
+                const item = gameState.equipment[slot];
+                const slotElement = equipmentContainer.querySelector(`[data-slot="${slot}"]`);
+                
+                if (slotElement && item) {
+                    // 更新图标位置
+                    const imgElement = slotElement.querySelector('img');
+                    if (imgElement) {
+                        // 根据装备类型设置不同的图标位置
+                        let objectPosition = '25% 50%'; // 默认键盘位置
+                        if (slot === 'armor') {
+                            objectPosition = '75% 50%'; // 防辐射服位置
+                        } else if (slot === 'accessory') {
+                            if (item.name.includes('咖啡')) {
+                                objectPosition = '25% 50%'; // 咖啡杯位置
+                            }
+                        } else if (slot === 'weapon') {
+                            if (item.name.includes('摸鱼')) {
+                                objectPosition = '75% 50%'; // 摸鱼圣剑位置
+                            }
+                        }
+                        imgElement.style.objectPosition = objectPosition;
+                    }
+                    
+                    // 更新名称
+                    const nameElement = slotElement.querySelector('p');
+                    if (nameElement) {
+                        nameElement.textContent = item.name;
+                    }
+                    
+                    // 添加装备描述提示
+                    slotElement.title = item.description;
+                    
+                    // 添加装备等级指示器
+                    let levelIndicator = slotElement.querySelector('.level-indicator');
+                    if (!levelIndicator) {
+                        levelIndicator = document.createElement('span');
+                        levelIndicator.className = 'level-indicator absolute -top-1 -right-1 bg-secondary text-dark text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center';
+                        slotElement.style.position = 'relative';
+                        slotElement.appendChild(levelIndicator);
+                    }
+                    levelIndicator.textContent = item.level;
+                }
+            });
+        }
+
+        // 更新对话历史
+        function updateDialogueHistory() {
+            dialogueContainerEl.innerHTML = '';
+            
+            gameState.dialogueHistory.forEach(dialogue => {
+                const dialogueEl = document.createElement('div');
+                dialogueEl.className = 'mb-4';
+                dialogueEl.innerHTML = `
+                    <p class="text-accent font-bold">${dialogue.speaker}:</p>
+                    <p class="text-light">${dialogue.text}</p>
+                `;
+                dialogueContainerEl.appendChild(dialogueEl);
+            });
+            
+            // 滚动到底部
+            dialogueContainerEl.scrollTop = dialogueContainerEl.scrollHeight;
+        }
+
+        // 更新选项
+        function updateOptions() {
+            optionsListEl.innerHTML = '';
+            
+            // 如果游戏结束，不显示选项
+            if (gameState.gameEnded) {
+                return;
+            }
+            
+            // 获取当前路径的选项
+            let options = [];
+            if (currentStoryPath && gameState.turnCount < fallbackContent.options[currentStoryPath].length) {
+                options = fallbackContent.options[currentStoryPath][gameState.turnCount];
+            } else {
+                // 默认选项
+                options = [
+                    '我需要更多信息。',
+                    '我们接下来要去哪里？',
+                    '你能告诉我更多关于这片森林的事吗？'
+                ];
+            }
+            
+            // 创建选项按钮
+            options.forEach(option => {
+                const buttonEl = document.createElement('button');
+                buttonEl.className = 'option-button w-full text-left p-3 mb-2 rounded-md bg-primary bg-opacity-30 hover:bg-opacity-50 border-l-4 border-secondary';
+                buttonEl.textContent = option;
+                buttonEl.addEventListener('click', () => handleOptionSelect(option));
+                optionsListEl.appendChild(buttonEl);
+            });
+        }
+
+        // 处理自定义选项
+        function handleCustomOption() {
+            const customOptionInput = document.getElementById('custom-option');
+            const customOption = customOptionInput.value.trim();
+            
+            if (customOption) {
+                handleOptionSelect(customOption);
+                customOptionInput.value = '';
+            }
+        }
+
+        // 处理选项选择
+        function handleOptionSelect(option) {
+            // 记录玩家的选择
+            gameState.gameHistory.push({
+                turn: gameState.turnCount,
+                choice: option
+            });
+            
+            // 显示加载指示器
+            showLoadingIndicator();
+            
+            // 如果没有API Key或API调用失败，使用预设内容
+            if (!gameState.apiKey) {
+                setTimeout(() => {
+                    useFallbackContent(option);
+                    hideLoadingIndicator();
+                }, 1000);
+            } else {
+                // 调用AI生成对话和选项
+                generateAIResponse(option)
+                    .then(() => {
+                        hideLoadingIndicator();
+                        // 检查游戏是否结束
+                        checkGameEnd();
+                    })
+                    .catch(error => {
+                        console.error('API调用失败:', error);
+                        // 如果API调用失败，使用预设内容
+                        useFallbackContent(option);
+                        hideLoadingIndicator();
+                    });
+            }
+        }
+
+        // 使用预设内容
+        function useFallbackContent(option) {
+            // 如果是第一个选择，确定故事路径
+            if (gameState.turnCount === 0) {
+                if (option.includes('做梦') || option.includes('睡觉') || option.includes('工作') || option.includes('PPT')) {
+                    currentStoryPath = 'dreamer_path';
+                } else if (option.includes('摸鱼') || option.includes('双休') || option.includes('法定节假日') || option.includes('条件')) {
+                    currentStoryPath = 'negotiator_path';
+                } else if (option.includes('系统') || option.includes('任务') || option.includes('主线') || option.includes('财务自由')) {
+                    currentStoryPath = 'player_path';
+                } else {
+                    // 默认路径
+                    currentStoryPath = 'player_path';
+                }
+                
+                // 初始装备升级
+                setTimeout(() => {
+                    upgradeEquipment('weapon', {
+                        name: '机械键盘',
+                        icon: 'keyboard-o',
+                        description: '手感更好的机械键盘，敲击代码效率提升50%',
+                        level: 2
+                    });
+                }, 1000);
+            }
+            
+            // 更新场景（每两个回合更新一次场景）
+            if (gameState.turnCount % 2 === 0 && gameState.turnCount > 0) {
+                const sceneKeys = Object.keys(fallbackContent.scenes);
+                const currentSceneIndex = sceneKeys.indexOf(gameState.currentScene);
+                const nextSceneIndex = (currentSceneIndex + 1) % sceneKeys.length;
+                const nextScene = sceneKeys[nextSceneIndex];
+                
+                gameState.currentScene = nextScene;
+                gameState.sceneInfo = {
+                    description: fallbackContent.scenes[nextScene].description,
+                    image: fallbackContent.scenes[nextScene].image
+                };
+                
+                // 根据场景更新装备
+                if (nextScene === 'office_forest') {
+                    setTimeout(() => {
+                        upgradeEquipment('armor', {
+                            name: '防辐射服',
+                            icon: 'shield',
+                            description: '特殊材质制作的防辐射服，能够抵御电脑辐射和加班带来的精神伤害',
+                            level: 2
+                        });
+                    }, 1000);
+                } else if (nextScene === 'meeting_dungeon') {
+                    setTimeout(() => {
+                        upgradeEquipment('accessory', {
+                            name: '咖啡杯',
+                            icon: 'coffee',
+                            description: '装满浓咖啡的杯子，提供持续的精神支持，让你在会议中保持清醒',
+                            level: 2
+                        });
+                    }, 1000);
+                } else if (nextScene === 'boss_room') {
+                    setTimeout(() => {
+                        upgradeEquipment('weapon', {
+                            name: '摸鱼圣剑',
+                            icon: 'bolt',
+                            description: '传说中的神器，能够在不被发现的情况下进行摸鱼，对996兽有特效',
+                            level: 5
+                        });
+                    }, 1000);
+                }
+            }
+            
+            // 添加NPC对话
+            if (currentStoryPath && gameState.turnCount < fallbackContent.dialogues[currentStoryPath].length) {
+                const npcDialogue = fallbackContent.dialogues[currentStoryPath][gameState.turnCount];
+                gameState.dialogueHistory.push(npcDialogue);
+            } else {
+                // 默认对话
+                gameState.dialogueHistory.push({
+                    speaker: gameState.npcInfo.name,
+                    text: '这是一个有趣的选择。让我们继续前进吧。'
+                });
+            }
+            
+            // 增加回合数
+            gameState.turnCount++;
+            
+            // 更新UI
+            updateUI();
+        }
+
+        // 调用千问API生成响应
+        async function generateAIResponse(option) {
+            const apiKey = gameState.apiKey;
+            const apiUrl = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions';
+            
+            // 构建对话历史
+            let messages = [
+                {
+                    role: 'system',
+                    content: '你是一个RPG游戏的AI助手，负责生成游戏剧情、NPC对话和玩家选项。游戏背景是现代打工人穿越到网游世界，充满幽默和低级趣味。玩家是一名996社畜，穿越到了自己玩的游戏《勇者传说Online》中，需要击败996兽，寻找摸鱼圣剑。请保持对话幽默搞笑，充满职场梗和游戏梗。'
+                }
+            ];
+            
+            // 添加场景描述
+            messages.push({
+                role: 'user',
+                content: `当前场景：${gameState.sceneInfo.description}`
+            });
+            
+            // 添加NPC信息
+            messages.push({
+                role: 'user',
+                content: `当前NPC：${gameState.npcInfo.name}，${gameState.npcInfo.title}`
+            });
+            
+            // 添加对话历史
+            gameState.dialogueHistory.forEach(dialogue => {
+                const role = dialogue.speaker === gameState.npcInfo.name ? 'assistant' : 'user';
+                messages.push({
+                    role: role,
+                    content: dialogue.text
+                });
+            });
+            
+            // 添加玩家的最新选择
+            messages.push({
+                role: 'user',
+                content: option
+            });
+            
+            // 构建请求体
+            const requestBody = {
+                model: 'qwen-plus',
+                messages: messages,
+                temperature: 0.7,
+                max_tokens: 500
+            };
+            
+            // 发送请求
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify(requestBody)
+            });
+            
+            if (!response.ok) {
+                throw new Error(`API调用失败: ${response.status} ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            
+            // 解析响应
+            if (data.choices && data.choices.length > 0) {
+                const npcResponse = data.choices[0].message.content;
+                
+                // 添加NPC回应到对话历史
+                gameState.dialogueHistory.push({
+                    speaker: gameState.npcInfo.name,
+                    text: npcResponse
+                });
+                
+                // 增加回合数
+                gameState.turnCount++;
+                
+                // 更新UI
+                updateUI();
+            } else {
+                throw new Error('API响应格式错误');
+            }
+        }
+
+        // 检查游戏是否结束
+        function checkGameEnd() {
+            if (gameState.turnCount >= gameState.maxTurns || gameState.gameEnded) {
+                endGame();
+            }
+        }
+
+        // 结束游戏
+        function endGame() {
+            gameState.gameEnded = true;
+            
+            // 根据玩家选择和游戏状态决定结局类型
+            const isGoodEnding = determineEndingType();
+            
+            // 从相应类型的结局中随机选择一个
+            const ending = getRandomEnding(isGoodEnding);
+            
+            // 显示结局
+            endingTitleEl.textContent = ending.title;
+            endingDescriptionEl.textContent = ending.description;
+            gameOverDialogEl.classList.remove('hidden');
+        }
+        
+        // 决定结局类型（好结局或坏结局）
+        function determineEndingType() {
+            // 分析玩家的选择历史
+            let positiveChoices = 0;
+            let negativeChoices = 0;
+            
+            gameState.gameHistory.forEach(choice => {
+                const text = choice.choice.toLowerCase();
+                // 积极选择关键词
+                if (text.includes('勇敢') || text.includes('努力') || text.includes('坚持') || 
+                    text.includes('击败') || text.includes('摸鱼') || text.includes('成功') ||
+                    text.includes('接受') || text.includes('挑战')) {
+                    positiveChoices++;
+                }
+                // 消极选择关键词
+                if (text.includes('放弃') || text.includes('害怕') || text.includes('逃避') || 
+                    text.includes('失败') || text.includes('绝望') || text.includes('痛苦') ||
+                    text.includes('拒绝') || text.includes('自杀')) {
+                    negativeChoices++;
+                }
+            });
+            
+            // 根据场景进度调整概率
+            const progressBonus = gameState.currentScene === 'boss_room' ? 2 : 0;
+            
+            // 70%基础概率获得好结局，根据选择和进度调整
+            const baseGoodChance = 0.7;
+            const choiceInfluence = (positiveChoices - negativeChoices) * 0.1;
+            const totalGoodChance = Math.min(0.95, Math.max(0.05, baseGoodChance + choiceInfluence + progressBonus * 0.15));
+            
+            return Math.random() < totalGoodChance;
+        }
+        
+        // 获取随机结局
+        function getRandomEnding(isGoodEnding) {
+            const goodEndings = ['rich', 'harem', 'king', 'warrior_king', 'normal', 'developer'];
+            const badEndings = ['death_battle', 'death_starve', 'death_depression', 'become_demon', 'forever_trapped'];
+            
+            const endingsPool = isGoodEnding ? goodEndings : badEndings;
+            const randomIndex = Math.floor(Math.random() * endingsPool.length);
+            const endingKey = endingsPool[randomIndex];
+            
+            return fallbackContent.endings[endingKey];
+        }
+
+        // 重新开始游戏
+        function restartGame() {
+            // 重置游戏状态
+            gameState.currentScene = 'forest_entrance';
+            gameState.gameHistory = [];
+            gameState.dialogueHistory = [
+                {
+                    speaker: '艾琳娜',
+                    text: '人类，你为何闯入这片神圣的森林？我们已经很久没有见到外来者了。'
+                }
+            ];
+            gameState.gameStarted = true;
+            gameState.gameEnded = false;
+            gameState.turnCount = 0;
+            currentStoryPath = '';
+            
+            // 重置场景信息
+            gameState.sceneInfo = {
+                description: fallbackContent.scenes.village.description,
+                image: fallbackContent.scenes.village.image
+            };
+            
+            // 隐藏结局对话框
+            gameOverDialogEl.classList.add('hidden');
+            
+            // 更新UI
+            updateUI();
+        }
+
+        // 保存游戏
+        function saveGame() {
+            try {
+                const saveData = JSON.stringify(gameState);
+                localStorage.setItem('ai-rpg-savegame', saveData);
+                alert('游戏已保存！');
+            } catch (error) {
+                console.error('保存游戏失败:', error);
+                alert('保存游戏失败！');
+            }
+        }
+
+        // 加载游戏
+        function loadGame() {
+            try {
+                const saveData = localStorage.getItem('ai-rpg-savegame');
+                if (saveData) {
+                    const loadedState = JSON.parse(saveData);
+                    Object.assign(gameState, loadedState);
+                    updateUI();
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.error('加载游戏失败:', error);
+                return false;
+            }
+        }
+
+        // 显示API Key对话框
+        function showApiKeyDialog() {
+            apiKeyDialogEl.classList.remove('hidden');
+            apiKeyInputEl.value = gameState.apiKey || '';
+        }
+
+        // 隐藏API Key对话框
+        function hideApiKeyDialog() {
+            apiKeyDialogEl.classList.add('hidden');
+        }
+
+        // 显示加载指示器
+        function showLoadingIndicator() {
+            loadingIndicatorEl.style.display = 'flex';
+            optionsListEl.style.display = 'none';
+        }
+
+        // 隐藏加载指示器
+        function hideLoadingIndicator() {
+            loadingIndicatorEl.style.display = 'none';
+            optionsListEl.style.display = 'block';
+        }
+
+        // 设置事件监听器
+        function setupEventListeners() {
+            // 重新开始按钮
+            restartButtonEl.addEventListener('click', restartGame);
+            
+            // 保存游戏按钮
+            saveButtonEl.addEventListener('click', saveGame);
+            
+            // API Key按钮
+            apiKeyButtonEl.addEventListener('click', showApiKeyDialog);
+            
+            // 取消API Key按钮
+            cancelApiKeyEl.addEventListener('click', hideApiKeyDialog);
+            
+            // 自定义选项事件
+            document.getElementById('custom-option-btn').addEventListener('click', handleCustomOption);
+            document.getElementById('custom-option').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    handleCustomOption();
+                }
+            });
+            
+            // 保存API Key按钮
+            saveApiKeyEl.addEventListener('click', () => {
+                const apiKey = apiKeyInputEl.value.trim();
+                if (apiKey) {
+                    gameState.apiKey = apiKey;
+                    localStorage.setItem('qwen-api-key', apiKey);
+                    hideApiKeyDialog();
+                    alert('API Key已保存！');
+                } else {
+                    alert('请输入有效的API Key！');
+                }
+            });
+            
+            // 再次游戏按钮
+            playAgainButtonEl.addEventListener('click', restartGame);
+        }
+
+        // 初始化游戏
+        window.addEventListener('DOMContentLoaded', initGame);
+    </script>
+
+</body></html>

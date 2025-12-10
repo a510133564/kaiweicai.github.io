@@ -515,31 +515,94 @@
         }
 
         function generateOptions() {
-            optionsContainer.innerHTML = '';
-            const options = getCharacterOptions(currentCharacter);
-            options.forEach(optionText => {
-                const optionDiv = document.createElement('div');
-                optionDiv.className = 'option';
-                optionDiv.textContent = optionText;
-                optionDiv.addEventListener('click', () => {
-                    addMessage(optionText, 'user');
-                    generateAIResponse(optionText);
-                });
-                optionsContainer.appendChild(optionDiv);
-            });
+            optionsContainer.innerHTML = '<div class="option" style="text-align: center; color: #999;">正在生成AI推荐选项...</div>';
+            generateAIOptions();
         }
 
-        function getCharacterOptions(character) {
-            const index = characters.indexOf(character);
-            const optionsMap = [
-                ["你最喜欢的宝可梦是什么呀？", "今天排练的歌曲是什么风格的？", "成为偶像辛苦吗？"],
-                ["今天看的剧本是什么类型的？", "平时怎么保持这么好的状态？", "工作中遇到过什么有趣的事吗？"],
-                ["你学会了什么新法术呀？", "这山上的风景真好，对吧？", "平时修炼辛苦吗？"],
-                ["别欺负小猫了好不好？", "你为什么总是这么调皮？", "要不要一起去别的地方玩？"],
-                ["你的泳衣真的很适合你！", "海边派对好玩吗？", "你会游泳吗？"],
-                ["这次要打的副本难不难？", "团队里有新手吗？", "玩游戏多久了？"]
+        async function generateAIOptions() {
+            try {
+                const options = await getAIOptions();
+                optionsContainer.innerHTML = '';
+                options.forEach(optionText => {
+                    const optionDiv = document.createElement('div');
+                    optionDiv.className = 'option';
+                    optionDiv.textContent = optionText;
+                    optionDiv.addEventListener('click', () => {
+                        addMessage(optionText, 'user');
+                        generateAIResponse(optionText);
+                    });
+                    optionsContainer.appendChild(optionDiv);
+                });
+            } catch (error) {
+                console.error('生成AI选项失败:', error);
+                optionsContainer.innerHTML = '<div class="option" style="text-align: center; color: #999;">生成选项失败，请重试</div>';
+            }
+        }
+
+        async function getAIOptions() {
+            const apiKey = API_KEY;
+            const apiUrl = 'https://api.deepseek.com/v1/chat/completions';
+            
+            // 构建消息历史，用于生成选项
+            const messages = [
+                {
+                    role: 'system',
+                    content: `你现在扮演${currentCharacter.name}，${currentCharacter.desc}。对话背景是${currentCharacter.background}。当前环境：${currentEnvironment}。
+                    请根据以下对话历史，生成3-5个适合用户接下来提问或回应的选项。
+                    要求：
+                    1. 选项必须与当前对话内容相关
+                    2. 选项要符合角色性格特点
+                    3. 选项要能推动对话继续发展
+                    4. 每个选项要简洁明了，不超过20字
+                    5. 请以JSON格式返回选项数组，格式为：["选项1", "选项2", "选项3", ...]
+                    6. 不要添加任何其他说明或解释
+                    `
+                }
             ];
-            return optionsMap[index] || ["继续聊点别的吧", "你最近怎么样？", "有什么有趣的事分享吗？"];
+            
+            // 添加最近的对话历史，最多保留10条消息
+            const recentHistory = chatHistory.slice(-10);
+            recentHistory.forEach(msg => messages.push({
+                role: msg.sender === 'user' ? 'user' : 'assistant',
+                content: msg.text
+            }));
+            
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                body: JSON.stringify({ 
+                    model: 'deepseek-chat', 
+                    messages, 
+                    temperature: 0.8, 
+                    max_tokens: 200,
+                    response_format: { type: "json_object" }
+                })
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(`API请求失败: ${response.status}，原因: ${errorData.error?.message || '未知错误'}`);
+            }
+            
+            const data = await response.json();
+            const aiResponse = data.choices[0].message.content.trim();
+            
+            // 解析JSON响应，获取选项数组
+            let options = [];
+            try {
+                options = JSON.parse(aiResponse);
+            } catch (parseError) {
+                console.error('解析AI选项失败:', parseError);
+                // 如果解析失败，返回默认选项
+                options = ["继续聊点别的吧", "你最近怎么样？", "有什么有趣的事吗？"];
+            }
+            
+            // 确保返回的是数组，且长度在3-5之间
+            if (!Array.isArray(options) || options.length === 0) {
+                options = ["继续聊点别的吧", "你最近怎么样？", "有什么有趣的事吗？"];
+            }
+            
+            return options.slice(0, 5);
         }
 
         function getFallbackMessage() {
